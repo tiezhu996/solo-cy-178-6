@@ -1,0 +1,42 @@
+name: gb-178
+
+services:
+  backend:
+    build: ./backend
+    container_name: ${COMPOSE_PROJECT_NAME:-gb-178}-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 9178
+      BACKEND_PORT: 9178
+      FRONTEND_PORT: ${FRONTEND_PORT:-8178}
+      DB_PORT: 10178
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SQLITE_PATH: /app/data/letter_pigeon.db
+    ports:
+      - "${BACKEND_PORT:-9178}:9178"
+      - "${DB_PORT:-10178}:10178"
+    volumes:
+      - sqlite_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:9178/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  frontend:
+    build: ./frontend
+    container_name: ${COMPOSE_PROJECT_NAME:-gb-178}-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8178}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  sqlite_data:
