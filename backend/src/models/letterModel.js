@@ -33,41 +33,14 @@ const LetterModel = {
     return db.prepare('UPDATE letters SET status = ? WHERE id = ?').run(status, id);
   },
 
-  listSentByUser(userId) {
+  listRootsInvolvingUser(userId) {
     return db
       .prepare(
         `SELECT l.*,
-          (SELECT COUNT(*) FROM letters c WHERE c.parent_id = l.id) AS reply_count
-         FROM letters l
-         WHERE l.sender_id = ? AND l.parent_id IS NULL
-         ORDER BY l.created_at DESC`
-      )
-      .all(userId);
-  },
-
-  listReceivedByUser(userId) {
-    return db
-      .prepare(
-        `SELECT l.*,
-          (SELECT COUNT(*) FROM letters c WHERE c.parent_id = l.id) AS reply_count
-         FROM letters l
-         WHERE l.receiver_id = ? AND l.parent_id IS NULL
-         ORDER BY l.created_at DESC`
-      )
-      .all(userId);
-  },
-
-  listConversationsForUser(userId) {
-    return db
-      .prepare(
-        `SELECT DISTINCT l.*,
           (SELECT COUNT(*) FROM letters c WHERE c.parent_id = l.id) AS reply_count
          FROM letters l
          WHERE l.parent_id IS NULL
            AND (l.sender_id = ? OR l.receiver_id = ?)
-           AND EXISTS (
-             SELECT 1 FROM letters c WHERE c.parent_id = l.id
-           )
          ORDER BY l.created_at DESC`
       )
       .all(userId, userId);

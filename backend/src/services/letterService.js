@@ -84,27 +84,32 @@ const LetterService = {
   },
 
   listInbox(userId) {
-    const rawSent = LetterModel.listSentByUser(userId);
-    const rawReceived = LetterModel.listReceivedByUser(userId);
-    const rawConvos = LetterModel.listConversationsForUser(userId);
+    const roots = LetterModel.listRootsInvolvingUser(userId);
     const favorites = new Set(
       FavoriteModel.listByUser(userId).map((l) => l.id)
     );
-    const decorate = (list, role) =>
-      list.map((l) => ({
-        id: l.id,
-        preview: l.content.slice(0, 80),
-        status: l.status,
-        createdAt: l.created_at,
-        replyCount: l.reply_count,
-        role,
-        favorited: favorites.has(l.id)
-      }));
-    return {
-      sent: decorate(rawSent, 'sent'),
-      received: decorate(rawReceived, 'received'),
-      conversations: decorate(rawConvos, 'either')
-    };
+    const decorate = (l, role) => ({
+      id: l.id,
+      preview: l.content.slice(0, 80),
+      status: l.status,
+      createdAt: l.created_at,
+      replyCount: l.reply_count,
+      role,
+      favorited: favorites.has(l.id)
+    });
+    const inbox = { sent: [], received: [], conversations: [] };
+    for (const letter of roots) {
+      if (letter.sender_id === userId) {
+        inbox.sent.push(decorate(letter, 'sent'));
+      }
+      if (letter.receiver_id === userId) {
+        inbox.received.push(decorate(letter, 'received'));
+      }
+      if (letter.reply_count > 0) {
+        inbox.conversations.push(decorate(letter, 'either'));
+      }
+    }
+    return inbox;
   },
 
   getThread({ userId, rootId }) {
